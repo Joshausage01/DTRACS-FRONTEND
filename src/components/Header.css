@@ -1,0 +1,83 @@
+/* Reset margins and paddings globally */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+  font-family: 'Roboto', sans-serif;
+}
+
+/* Remove extra white gaps caused by body default margin */
+body {
+  margin: 0;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;           /* Vertically center content */
+  justify-content: space-between;
+  background-color: #203061;     /* Navy blue */
+  height: 80px;                  /* Fixed height */
+  padding: 0 1rem;               /* Horizontal padding */
+  color: white;
+  font-family: 'Roboto', sans-serif;
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+
+.header-left {
+  display: flex;
+  align-items: center;
+}
+
+.menu-btn {
+  font-size: 35px;
+  background: none;
+  border: none;
+  color: white;
+  margin-right: 1rem;
+  cursor: pointer;
+  padding: 0 6px ;
+}
+
+.profile-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  object-fit: cover;
+  margin-right: 30px;
+} 
+
+.header-text {
+  padding-left: 30px;
+  display: flex;
+  flex-direction: column;
+}
+
+.header-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.header-subtitle {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 400;
+}
+
+.header-right .profile-btn {
+  font-size: 1.2rem;
+  background: none;
+  border: none;
+  color: white;
+  cursor: pointer;
+  padding: 0 12px;
+}
