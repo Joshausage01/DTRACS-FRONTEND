@@ -1,8 +1,8 @@
 import React from 'react';
 import './Home.css';
 import Footer from '../../components/Footer';
-import Sidebar from '../../components/Sidebar';
-import Header from '../../components/Header';
+import Sidebar from '../../components/Sidebars/OfficeSidebar';
+import Header from '../../components/Headers/OfficeHeader';
 
 const Home = () => {
   return (

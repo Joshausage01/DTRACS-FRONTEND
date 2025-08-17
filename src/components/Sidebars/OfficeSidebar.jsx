@@ -1,8 +1,14 @@
-import React from "react";
-import "./Sidebar.css";
-import { FaClipboardList, FaBuilding, FaCog } from "react-icons/fa";
+import React, { useState } from "react";
+import "./OfficeSidebar.css";
+import { FaClipboardList } from "react-icons/fa";
+import { RiSchoolFill } from "react-icons/ri";
+import { MdManageAccounts } from "react-icons/md";
 
-const Sidebar = () => {
+
+const OfficeSidebar = () => {
+  const [activeitem, setActiveItem] = useState(null);
+
+
   return (
     <aside className="sidebar">
       <nav className="sidebar-nav">
@@ -14,12 +20,12 @@ const Sidebar = () => {
           </li>
           <li>
             <a href="#" className="sidebar-link" title="Departments">
-              <FaBuilding className="sidebar-icon" />
+              <RiSchoolFill className="sidebar-icon" />
             </a>
           </li>
           <li>
             <a href="#" className="sidebar-link" title="Settings">
-              <FaCog className="sidebar-icon" />
+              <MdManageAccounts className="sidebar-icon" />
             </a>
           </li>
         </ul>
@@ -28,4 +34,4 @@ const Sidebar = () => {
   );
 };
 
-export default Sidebar;
+export default OfficeSidebar;

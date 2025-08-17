@@ -1,9 +1,9 @@
 import React from "react";
-import "./Header.css";
+import "./OfficeHeader.css";
 import { GiHamburgerMenu } from "react-icons/gi";
-import profileIcon from "../assets/profileBTN.png"; // Adjust the path as necessary
+import profileIcon from "../../assets/profileBTN.png"; // Adjust the path as necessary
 
-const Header = () => {
+const OfficeHeader = () => {
   return (
     <header className="app-header">
       <div className="header-left">
@@ -28,4 +28,4 @@ const Header = () => {
   );
 };
 
-export default Header;
+export default OfficeHeader;
