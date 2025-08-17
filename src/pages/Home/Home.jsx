@@ -1,14 +1,16 @@
-import React from 'react';
+import React, { useState } from 'react';
 import './Home.css';
 import Footer from '../../components/Footer';
-import Sidebar from '../../components/Sidebars/OfficeSidebar';
-import Header from '../../components/Headers/OfficeHeader';
+import OfficeSidebar from '../../components/Sidebars/OfficeSidebar';
+import OfficeHeader from '../../components/Headers/OfficeHeader';
 
 const Home = () => {
+  const  [isSidebarOpen, setIsSidebarOpen] = useState(false);
+
   return (
     <div>
-      <Header />
-      <Sidebar />
+      <OfficeHeader onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)} />
+      <OfficeSidebar isOpen={isSidebarOpen} />
       <Footer />
     </div>
   );

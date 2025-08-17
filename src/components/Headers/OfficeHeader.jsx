@@ -3,11 +3,11 @@ import "./OfficeHeader.css";
 import { GiHamburgerMenu } from "react-icons/gi";
 import profileIcon from "../../assets/profileBTN.png"; // Adjust the path as necessary
 
-const OfficeHeader = () => {
+const OfficeHeader = ({ onToggleSidebar }) => {
   return (
     <header className="app-header">
       <div className="header-left">
-        <button className="menu-btn">
+        <button className="menu-btn" onClick={ onToggleSidebar}>
           <GiHamburgerMenu className="menu-icon"/>
         </button>
         <div className="header-text">
