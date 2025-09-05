@@ -5,7 +5,6 @@ import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { IoChevronBackOutline } from "react-icons/io5";
 import { RiAccountPinBoxLine } from "react-icons/ri";
-import { SlOptionsVertical } from "react-icons/sl";
 
 // Components
 import TaskDescription from "../../components/TaskDetailComponents/TaskDescription/TaskDescription";
@@ -13,7 +12,6 @@ import SchoolStats from "../../components/TaskDetailComponents/SchoolStats/Schoo
 import CommentBox from "../../components/CommentBox/CommentBox";
 import CommentList from "../../components/CommentList/CommentList";
 import SharedButton from "../../components/SharedButton/SharedButton";
-import TaskEditModal from "../../components/TaskDetailComponents/TaskEdit/TaskEdit"; // We'll create this
 
 // Hooks
 import useClickOutside from "../../hooks/useClickOutside";
@@ -32,23 +30,13 @@ const TaskDetailPage = () => {
   const [editingId, setEditingId] = useState(null);
   const [editText, setEditText] = useState("");
   
-  // State for dropdown menu and edit modal
-  const [showOptionsMenu, setShowOptionsMenu] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  
   // Refs
   const commentBoxRef = useRef(null);
   const editTextareaRef = useRef(null);
-  const optionsMenuRef = useRef(null);
 
   // Close comment box when clicking outside
   useClickOutside(commentBoxRef, () => {
     if (showCommentBox) setShowCommentBox(false);
-  });
-
-  // Close options menu when clicking outside
-  useClickOutside(optionsMenuRef, () => {
-    if (showOptionsMenu) setShowOptionsMenu(false);
   });
 
   const [isCompleted, setIsCompleted] = useState(false);
@@ -192,28 +180,21 @@ const TaskDetailPage = () => {
     setShowCommentBox(!showCommentBox);
   };
 
-  // Options menu handlers
-  const toggleOptionsMenu = () => {
-    setShowOptionsMenu(!showOptionsMenu);
-  };
-
+  // Task action handlers (to be passed to TaskDescription)
   const handleEditTask = () => {
-    setShowOptionsMenu(false);
-    setShowEditModal(true);
+    // This will be handled in the TaskDescription component
+    console.log("Edit task requested");
   };
 
   const handleDeleteTask = () => {
-    setShowOptionsMenu(false);
     if (window.confirm("Are you sure you want to delete this task? This action cannot be undone.")) {
       // Implement task deletion logic here
       toast.success("Task deleted successfully!");
-      // Navigate back or to a different page after deletion
       navigate(-1);
     }
   };
 
   const handleCopyLink = () => {
-    setShowOptionsMenu(false);
     const taskUrl = window.location.href;
     navigator.clipboard.writeText(taskUrl)
       .then(() => {
@@ -225,13 +206,16 @@ const TaskDetailPage = () => {
   };
 
   const handleTaskUpdate = (updatedTask) => {
-    // Handle the updated task data
-    console.log("Task updated:", updatedTask);
-    setShowEditModal(false);
-    toast.success("Task updated successfully!");
-    
-    // You might want to update the local state or refetch the task data
-    // For now, we'll just show a success message
+  // Handle the updated task data
+  console.log("Task updated:", updatedTask);
+  toast.success("Task updated successfully!");
+  
+  // You might want to update the local state or refetch the task data
+  // For example, if you're using state to manage the task:
+  // setTask(updatedTask);
+  
+  // Or if you need to refetch from the server:
+  // fetchTaskData(); 
   };
 
   // Handle task not found
@@ -254,35 +238,9 @@ const TaskDetailPage = () => {
   return (
     <div className="task-detail-page">
       <div className="task-detail-left">
-        <div className="task-header-with-actions">
-          <button className="task-back-btn" onClick={handleBack}>
-            <IoChevronBackOutline className="icon-md" /> Back
-          </button>
-          
-          <div className="task-actions-container">
-            <button 
-              className="task-options-button"
-              onClick={toggleOptionsMenu}
-              aria-label="Task options"
-            >
-              <SlOptionsVertical className="icon-md" />
-            </button>
-            
-            {showOptionsMenu && (
-              <div ref={optionsMenuRef} className="options-dropdown">
-                <button onClick={handleEditTask} className="dropdown-item">
-                  Edit Task
-                </button>
-                <button onClick={handleDeleteTask} className="dropdown-item delete">
-                  Delete Task
-                </button>
-                <button onClick={handleCopyLink} className="dropdown-item">
-                  Copy Link
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
+        <button className="task-back-btn" onClick={handleBack}>
+          <IoChevronBackOutline className="icon-md" /> Back
+        </button>
         
         <TaskDescription
           task={task || {
@@ -300,6 +258,10 @@ const TaskDetailPage = () => {
           deadline={taskDeadline}
           description={taskDescription}
           isCompleted={isCompleted}
+          onEditTask={handleEditTask}
+          onDeleteTask={handleDeleteTask}
+          onCopyLink={handleCopyLink}
+          onTaskUpdated={handleTaskUpdate} // Add this callback
         />
         
         {/* Comment Section */}
@@ -336,15 +298,6 @@ const TaskDetailPage = () => {
       <div className="task-detail-right">
         <SchoolStats task={task} taskId={taskId} sectionId={sectionId} />
       </div>
-
-      {/* Edit Task Modal */}
-      {showEditModal && (
-        <TaskEditModal
-          task={task}
-          onClose={() => setShowEditModal(false)}
-          onSave={handleTaskUpdate}
-        />
-      )}
 
       <ToastContainer
         position="top-right"
