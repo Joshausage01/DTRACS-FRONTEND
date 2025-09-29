@@ -2,7 +2,7 @@
 const savedApiUrl = localStorage.getItem("API_BASE_URL");
 
 // Default fallback
-const defaultApiUrl = "http://192.168.10.104:8000";
+const defaultApiUrl = process.env.REACT_APP_API_BASE_URL;
 
 const config = {
   API_BASE_URL: (savedApiUrl || defaultApiUrl).trim(),
