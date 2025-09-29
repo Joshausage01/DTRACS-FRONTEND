@@ -89,10 +89,6 @@ const Header = ({ toggleSidebar }) => {
     try {
       const response = await fetch(`${config.API_BASE_URL}/auth/logout`, {
         method: "POST",
-        headers: {
-          "Authorization": `Bearer ${refreshToken}`,
-          "Content-Type": "application/json",
-        },
         credentials: "include",
       });
 
