@@ -26,12 +26,12 @@ const Login = () => {
       // Determine which profile endpoint to use based on current route
       let profileEndpoint;
       if (isSchoolPath) {
-        profileEndpoint = "/school/account/info";
+        profileEndpoint = "/school/account/info/";
       } else if (isOfficePath) {
-        profileEndpoint = "/focal/account/info";
+        profileEndpoint = "/focal/account/info/";
       } else {
         // Default fallback: try school first, or handle generic case
-        profileEndpoint = "/school/account/info";
+        profileEndpoint = "/school/account/info/";
       }
 
       try {
@@ -159,7 +159,7 @@ const Login = () => {
       const { user_id } = await loginResponse.json();
 
       // Fetch profile (same as auto-check)
-      let profileEndpoint = isSchoolPath ? "/school/account/info" : "/focal/account/info";
+      let profileEndpoint = isSchoolPath ? "/school/account/info/" : "/focal/account/info/";
       const profileResponse = await fetch(`${config.API_BASE_URL}${profileEndpoint}`, {
         method: "GET",
         credentials: "include",
