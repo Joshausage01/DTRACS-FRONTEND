@@ -39,35 +39,66 @@ const ManageAccount = () => {
   useEffect(() => {
     const fetchUserData = async () => {
       console.log("[DEBUG] fetchUserData started");
+
+      // ✅ Step 1: Get existing user data to determine role
+      const storedUserStr = sessionStorage.getItem("currentUser");
+      if (!storedUserStr) {
+        toast.error("Not authenticated. Redirecting...");
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 1500);
+        return;
+      }
+
+      let storedUser;
       try {
-        const token = sessionStorage.getItem("authToken");
-        if (!token) {
-          toast.error("Not authenticated. Redirecting...");
-          setTimeout(() => {
-            window.location.href = "/";
-          }, 1500);
-          return;
-        }
+        storedUser = JSON.parse(storedUserStr);
+      } catch (e) {
+        toast.error("Invalid session. Please log in again.");
+        setTimeout(() => window.location.href = "/login", 1500);
+        return;
+      }
 
-        const fullUrl = `${config.API_BASE_URL}/auth/get/current/user`;
-        console.log("[DEBUG] Fetching from:", fullUrl);
+      const { role, user_id } = storedUser;
+      if (!role || !user_id) {
+        toast.error("Session corrupted. Please log in again.");
+        setTimeout(() => window.location.href = "/login", 1500);
+        return;
+      }
 
+      // ✅ Step 2: Choose endpoint based on role
+      let endpoint;
+      if (role === "school") {
+        endpoint = "/school/account/info";
+      } else if (role === "office" || role === "admin") {
+        endpoint = "/focal/account/info";
+      } else {
+        toast.error("Unknown user role.");
+        setTimeout(() => window.location.href = "/login", 1500);
+        return;
+      }
+
+      const fullUrl = `${config.API_BASE_URL}${endpoint}`;
+      console.log(`[DEBUG] Fetching user data from: ${fullUrl} (role: ${role})`);
+
+      try {
+        // ✅ DO NOT send Authorization header — rely on cookies
         const res = await fetch(fullUrl, {
           method: 'GET',
+          credentials: 'include', // 👈 Ensures cookies are sent
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
+            // NO Authorization header — cookies handle auth
           },
         });
 
         if (!res.ok) {
-          if (res.status === 401) {
-            // Token expired or invalid
+          if (res.status === 401 || res.status === 403) {
+            // Session invalid or cookie expired
             sessionStorage.removeItem("currentUser");
-            sessionStorage.removeItem("authToken");
             toast.error("Session expired. Please log in again.");
             setTimeout(() => {
-              window.location.href = "/login/school";
+              window.location.href = "/login";
             }, 2000);
             return;
           }
@@ -77,24 +108,22 @@ const ManageAccount = () => {
         const backendData = await res.json();
         console.log("[API Response - User Data]", backendData);
 
-        // ✅ Determine role from user_id (as done in Login.jsx)
-        let role = "school"; // default
-        if (backendData.user_id?.includes("FOCAL")) {
-          role = "office";
-        } else if (backendData.user_id?.includes("ADMIN")) {
-          role = "admin";
+        // ✅ Reconstruct role (in case backend doesn't send it)
+        let finalRole = role; // preserve from login
+        if (!finalRole) {
+          finalRole = user_id?.includes("FOCAL") ? "office" : user_id?.includes("ADMIN") ? "admin" : "school";
         }
 
         // ✅ Build merged user data
-        let mergedData = {
-          user_id: backendData.user_id || "",
+        const mergedData = {
+          user_id: backendData.user_id || user_id || "",
           first_name: backendData.first_name || "",
           last_name: backendData.last_name || "",
           middle_name: backendData.middle_name || "",
           email: backendData.email || "",
           contact_number: backendData.contact_number || "",
           avatar: backendData.avatar || null,
-          role: role,
+          role: finalRole,
           school_name: backendData.school_name || "Not specified",
           school_address: backendData.school_address || "Not specified",
           position: backendData.position || "Not specified",
@@ -102,11 +131,10 @@ const ManageAccount = () => {
           section_designation: backendData.section_designation || "Not specified",
           registration_date: backendData.registration_date || new Date().toISOString(),
           active: backendData.active !== undefined ? backendData.active : true,
-          token: token, // optional, but consistent with Login.jsx
         };
 
         // ✅ Auto-fill school address if missing and role is "school"
-        if (role === "school" && (mergedData.school_address === "N/A" || mergedData.school_address === "Not specified")) {
+        if (finalRole === "school" && (mergedData.school_address === "N/A" || mergedData.school_address === "Not specified")) {
           const correctAddress = schoolAddresses[mergedData.school_name];
           if (correctAddress) {
             mergedData.school_address = correctAddress;
@@ -130,14 +158,16 @@ const ManageAccount = () => {
       } catch (error) {
         console.error("Error fetching user data:", error);
         toast.error("Failed to load profile. Please log in again.");
+        sessionStorage.removeItem("currentUser");
         setTimeout(() => {
-          window.location.href = "/";
+          window.location.href = "/login";
         }, 2000);
       }
     };
 
     fetchUserData();
   }, []);
+
 
   // ✅ Show success toast after reload if flag exists
   useEffect(() => {
