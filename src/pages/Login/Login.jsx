@@ -1,5 +1,5 @@
 // src/pages/Login.jsx
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import "./Login.css";
 import { FiLogIn } from "react-icons/fi";
@@ -9,129 +9,174 @@ import logo from "../../assets/images/logo-w-text.png";
 import { schoolAddresses } from "../../data/schoolAddresses";
 import config from "../../config";
 
-
 const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [isHovering, setIsHovering] = useState(false);
   const [error, setError] = useState(""); // Must be string
+  const [checkingAuth, setCheckingAuth] = useState(true); // For initial check
   const navigate = useNavigate();
   const location = useLocation();
-
 
   const isSchoolPath = location.pathname.includes("/login/school");
   const isOfficePath = location.pathname.includes("/login/office");
 
+  // 🔍 Auto-check if already logged in (via cookie)
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      // Determine which profile endpoint to use based on current route
+      let profileEndpoint;
+      if (isSchoolPath) {
+        profileEndpoint = "/school/account/info";
+      } else if (isOfficePath) {
+        profileEndpoint = "/focal/account/info";
+      } else {
+        // Default fallback: try school first, or handle generic case
+        profileEndpoint = "/school/account/info";
+      }
+
+      try {
+        const res = await fetch(`${config.API_BASE_URL}${profileEndpoint}`, {
+          method: "GET",
+          credentials: "include", // Essential for sending cookies
+        });
+
+        if (res.ok) {
+          const profileData = await res.json();
+
+          // Determine role
+          let role = "school";
+          if (profileData.user_id?.includes("FOCAL")) {
+            role = "office";
+          } else if (profileData.user_id?.includes("ADMIN")) {
+            role = "admin";
+          }
+
+          // Build user object (same as in handleSubmit)
+          const userData = {
+            user_id: profileData.user_id || "",
+            first_name: profileData.first_name || "",
+            middle_name: profileData.middle_name || "",
+            last_name: profileData.last_name || "",
+            school_name: profileData.school_name || "Not specified",
+            school_address: profileData.school_address || "Not specified",
+            position: profileData.position || "Not specified",
+            office: profileData.office || "Not specified",
+            section_designation: profileData.section_designation || "Not specified",
+            email: profileData.email || "",
+            contact_number: profileData.contact_number || "",
+            registration_date: profileData.registration_date || new Date().toISOString(),
+            active: profileData.active !== undefined ? profileData.active : true,
+            avatar: profileData.avatar || null,
+            role,
+          };
+
+          // Fix school address
+          if (role === "school" && (userData.school_address === "N/A" || userData.school_address === "Not specified")) {
+            const correctAddress = schoolAddresses[userData.school_name];
+            if (correctAddress) {
+              userData.school_address = correctAddress;
+            }
+          }
+
+          // Save to sessionStorage (for UI access, not auth)
+          sessionStorage.setItem("currentUser", JSON.stringify(userData));
+
+          // Redirect based on role
+          if (role === "school") {
+            navigate("/home", { replace: true });
+          } else if (role === "office" || role === "admin") {
+            navigate("/task/ongoing", { replace: true });
+          } else {
+            navigate("/home", { replace: true });
+          }
+          return;
+        }
+      } catch (err) {
+        console.warn("Auto-login check failed (expected if not logged in):", err);
+        // Continue to login form
+      } finally {
+        setCheckingAuth(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, [isSchoolPath, isOfficePath, navigate]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setError(""); // Clear previous error
-
+    setError("");
 
     const formData = new FormData(e.target);
     const email = formData.get("email").trim();
     const password = formData.get("password");
 
-
-    // 🔁 Determine login endpoint based on route
     let loginEndpoint;
     if (isSchoolPath) {
       loginEndpoint = "/school/login";
     } else if (isOfficePath) {
       loginEndpoint = "/focal/login";
+    } else {
+      // Fallback: assume school
+      loginEndpoint = "/school/login";
     }
 
-
     try {
-      // Step 1: Login to get access_token and refresh_token
       const loginResponse = await fetch(`${config.API_BASE_URL}${loginEndpoint}`, {
         method: "POST",
-        credentials: 'include',
+        credentials: "include",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({ email, password }),
       });
 
-
       let loginData;
       let errorMsg = "";
-
 
       if (!loginResponse.ok) {
         try {
           loginData = await loginResponse.json();
-        } catch (jsonErr) {
-          throw new Error(`Server returned ${loginResponse.status} with non-JSON body`);
+        } catch {
+          throw new Error(`Login failed: ${loginResponse.status}`);
         }
-
 
         if (typeof loginData.detail === "string") {
           errorMsg = loginData.detail;
         } else if (Array.isArray(loginData.detail)) {
           errorMsg = loginData.detail
-            .map((e) => e.msg || e.message || "Invalid input")
+            .map((e) => e.msg || "Invalid input")
             .filter(Boolean)
             .join(" • ");
         } else if (loginData.message) {
           errorMsg = loginData.message;
         } else {
-          errorMsg = `Login failed with status ${loginResponse.status}`;
+          errorMsg = `Login failed (${loginResponse.status})`;
         }
-
-
         throw new Error(errorMsg);
       }
 
+      // ✅ No need to store access_token in sessionStorage — cookies handle auth
+      const { user_id } = await loginResponse.json();
 
-      // Extract tokens and user_id
-      const { access_token, refresh_token, user_id } = await loginResponse.json();
-
-
-      if (!access_token) {
-        throw new Error("Access token not returned from login");
-      }
-
-
-      // Step 2: Fetch current user profile using role-specific endpoint
-      let profileEndpoint;
-      if (isSchoolPath) {
-        profileEndpoint = `/school/account/info/`;
-      } else if (isOfficePath) {
-        profileEndpoint = `/focal/account/info/`;
-      }
-
-
-      const profileResponse = await fetch(
-        `${config.API_BASE_URL}${profileEndpoint}`,
-        {
-          method: "GET",
-          credentials: 'include',
-        }
-      );
-
+      // Fetch profile (same as auto-check)
+      let profileEndpoint = isSchoolPath ? "/school/account/info" : "/focal/account/info";
+      const profileResponse = await fetch(`${config.API_BASE_URL}${profileEndpoint}`, {
+        method: "GET",
+        credentials: "include",
+      });
 
       if (!profileResponse.ok) {
-        const profileError = await profileResponse.json().catch(() => ({}));
-        console.error("Profile fetch error:", profileError);
-        throw new Error("Failed to load user profile. Please try again.");
+        throw new Error("Failed to load user profile after login.");
       }
-
 
       const profileData = await profileResponse.json();
 
-
-      // Step 3: Determine role from user_id
       let role = "school";
-      if (profileData.user_id?.includes("FOCAL")) {
-        role = "office";
-      } else if (profileData.user_id?.includes("ADMIN")) {
-        role = "admin";
-      }
+      if (profileData.user_id?.includes("FOCAL")) role = "office";
+      else if (profileData.user_id?.includes("ADMIN")) role = "admin";
 
-
-      // Step 4: Build user object
       const userData = {
-        user_id: profileData.user_id || "",
+        user_id: profileData.user_id || user_id || "",
         first_name: profileData.first_name || "",
         middle_name: profileData.middle_name || "",
         last_name: profileData.last_name || "",
@@ -145,11 +190,9 @@ const Login = () => {
         registration_date: profileData.registration_date || new Date().toISOString(),
         active: profileData.active !== undefined ? profileData.active : true,
         avatar: profileData.avatar || null,
-        role: role,
+        role,
       };
 
-
-      // Fix school address if needed
       if (role === "school" && (userData.school_address === "N/A" || userData.school_address === "Not specified")) {
         const correctAddress = schoolAddresses[userData.school_name];
         if (correctAddress) {
@@ -157,16 +200,10 @@ const Login = () => {
         }
       }
 
-
-      // Save to sessionStorage
+      // ✅ Only store user data (not tokens) for UI
       sessionStorage.setItem("currentUser", JSON.stringify(userData));
-      sessionStorage.setItem("authToken", access_token);
-      if (refresh_token) {
-        sessionStorage.setItem("refreshToken", refresh_token);
-      }
 
-
-      // Navigate based on role
+      // Redirect
       if (role === "school") {
         navigate("/home");
       } else if (role === "office" || role === "admin") {
@@ -180,11 +217,7 @@ const Login = () => {
     }
   };
 
-
-  const togglePasswordVisibility = () => {
-    setShowPassword(!showPassword);
-  };
-
+  const togglePasswordVisibility = () => setShowPassword(!showPassword);
 
   const handleRegisterClick = (e) => {
     e.preventDefault();
@@ -193,11 +226,18 @@ const Login = () => {
     else navigate("/register");
   };
 
-
   const handleLogoClick = () => {
     navigate("/");
   };
 
+  // Show loading during auth check
+  if (checkingAuth) {
+    return (
+      <div className="login-page" style={{ display: "flex", justifyContent: "center", alignItems: "center", height: "100vh" }}>
+        <p>Checking login status...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="login-page">
@@ -216,20 +256,16 @@ const Login = () => {
             </p>
           </div>
 
-
-          {/* ✅ Only render if `error` is a non-empty string */}
           {error && typeof error === "string" && error.length > 0 && (
             <div className="login-error">
               <p>{error}</p>
             </div>
           )}
 
-
           <form className="login-form" onSubmit={handleSubmit}>
+            {/* ... form fields unchanged ... */}
             <div className="login-form-group">
-              <label htmlFor="email" className="login-form-label">
-                Email
-              </label>
+              <label htmlFor="email" className="login-form-label">Email</label>
               <div className="login-input-group">
                 <input
                   type="email"
@@ -242,11 +278,8 @@ const Login = () => {
               </div>
             </div>
 
-
             <div className="login-form-group">
-              <label htmlFor="password" className="login-form-label">
-                Password
-              </label>
+              <label htmlFor="password" className="login-form-label">Password</label>
               <div className="login-password-input-group">
                 <input
                   type={showPassword ? "text" : "password"}
@@ -260,15 +293,10 @@ const Login = () => {
                   {showPassword ? "Hide" : "Show"}
                 </button>
               </div>
-
-
               <div className="login-forgot-password">
-                <a href="#forgot" className="login-forgot-link">
-                  I forgot my password
-                </a>
+                <a href="#forgot" className="login-forgot-link">I forgot my password</a>
               </div>
             </div>
-
 
             <button
               type="submit"
@@ -285,7 +313,6 @@ const Login = () => {
             </button>
           </form>
 
-
           <div className="register-section">
             <p className="register-text">
               Need an account?{" "}
@@ -299,17 +326,11 @@ const Login = () => {
             </p>
           </div>
 
-
           <div className="login-terms-notice">
             <p>
               By using this service, you understand and agree to the DepEd Online Services{" "}
-              <a href="#terms" className="login-terms-link">
-                Terms of Use
-              </a>{" "}
-              and{" "}
-              <a href="#privacy" className="login-terms-link">
-                Privacy Statement
-              </a>
+              <a href="#terms" className="login-terms-link">Terms of Use</a> and{" "}
+              <a href="#privacy" className="login-terms-link">Privacy Statement</a>
             </p>
           </div>
         </div>
