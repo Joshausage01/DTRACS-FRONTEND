@@ -69,9 +69,9 @@ const ManageAccount = () => {
       // ✅ Step 2: Choose endpoint based on role
       let endpoint;
       if (role === "school") {
-        endpoint = "/school/account/info";
+        endpoint = "/school/account/info/";
       } else if (role === "office" || role === "admin") {
-        endpoint = "/focal/account/info";
+        endpoint = "/focal/account/info/";
       } else {
         toast.error("Unknown user role.");
         setTimeout(() => window.location.href = "/login", 1500);
