@@ -2,7 +2,7 @@ import React from "react";
 import { Outlet } from "react-router-dom";
 import Header from "../../components/Header/Header";
 import SchoolSidebar from "../../components/Sidebar/SchoolSidebar";
-//import Footer from "../../components/Footer/Footer";
+import Footer from "../../components/Footer/Footer";
 import "./SchoolHome.css";
 import { useSidebar } from "../../context/SidebarContext";
 
@@ -20,7 +20,7 @@ const Home = () => {
         </main>
       </div>
 
-      {/* <Footer /> */}
+      <Footer />
     </div>
   );
 };

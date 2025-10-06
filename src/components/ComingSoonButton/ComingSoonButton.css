@@ -1,0 +1,63 @@
+/* src/components/ComingSoonButton.css */
+.floating-coming-soon {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1002; /* Ensure it's above other content */
+}
+
+.coming-soon-button {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 2px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+}
+
+.coming-soon-button:hover {
+  background-color: #e0f2fe;
+  transform: scale(1.1);
+}
+
+.coming-soon-button svg {
+  color: #0ea5e9;
+}
+
+.coming-soon-message {
+  position: absolute;
+  bottom: 45px;
+  right: 0;
+  background-color: #1e293b;
+  color: white;
+  padding: 6px 12px;
+  border-radius: 4px;
+  font-weight: 600;
+  font-size: 12px;
+  white-space: nowrap;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  animation: fadeInOut 2s ease-in-out;
+}
+
+@keyframes fadeInOut {
+  0% {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  10% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  90% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-5px);
+  }
+}

@@ -19,14 +19,13 @@ import { schoolAddresses } from "../../data/schoolAddresses";
 
 const ManageAccount = () => {
   const [isEditing, setIsEditing] = useState(false);
-
-  // ✅ State: user data from backend
   const [userData, setUserData] = useState(null);
   const [avatar, setAvatar] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null); // ✅ New: track fetch errors
 
   const fileInputRef = useRef(null);
 
-  // ✅ Unified temp state for all editable fields
   const [tempProfile, setTempProfile] = useState({
     first_name: "",
     middle_name: "",
@@ -35,18 +34,16 @@ const ManageAccount = () => {
     contact_number: "",
   });
 
-  // ✅ Load user data from backend on mount
+  // ✅ Load user data — no redirects on failure
   useEffect(() => {
     const fetchUserData = async () => {
-      console.log("[DEBUG] fetchUserData started");
+      setLoading(true);
+      setError(null);
 
-      // ✅ Step 1: Get existing user data to determine role
       const storedUserStr = sessionStorage.getItem("currentUser");
       if (!storedUserStr) {
-        toast.error("Not authenticated. Redirecting...");
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 1500);
+        setError("No session found. Please log in.");
+        setLoading(false);
         return;
       }
 
@@ -54,67 +51,56 @@ const ManageAccount = () => {
       try {
         storedUser = JSON.parse(storedUserStr);
       } catch (e) {
-        toast.error("Invalid session. Please log in again.");
-        setTimeout(() => window.location.href = "/login", 1500);
+        setError("Invalid session data.");
+        setLoading(false);
         return;
       }
 
       const { role, user_id } = storedUser;
       if (!role || !user_id) {
-        toast.error("Session corrupted. Please log in again.");
-        setTimeout(() => window.location.href = "/login", 1500);
+        setError("Session missing required info.");
+        setLoading(false);
         return;
       }
 
-      // ✅ Step 2: Choose endpoint based on role
       let endpoint;
       if (role === "school") {
         endpoint = "/school/account/info/";
       } else if (role === "office" || role === "admin") {
         endpoint = "/focal/account/info/";
       } else {
-        toast.error("Unknown user role.");
-        setTimeout(() => window.location.href = "/login", 1500);
+        setError("Unknown user role.");
+        setLoading(false);
         return;
       }
 
-      const fullUrl = `${config.API_BASE_URL}${endpoint}`;
-      console.log(`[DEBUG] Fetching user data from: ${fullUrl} (role: ${role})`);
-
       try {
-        // ✅ DO NOT send Authorization header — rely on cookies
+        const fullUrl = `${config.API_BASE_URL}${endpoint}`;
         const res = await fetch(fullUrl, {
           method: 'GET',
-          credentials: 'include', // 👈 Ensures cookies are sent
+          credentials: 'include',
           headers: {
             'Content-Type': 'application/json',
-            // NO Authorization header — cookies handle auth
           },
         });
 
         if (!res.ok) {
           if (res.status === 401 || res.status === 403) {
-            // Session invalid or cookie expired
-            sessionStorage.removeItem("currentUser");
-            toast.error("Session expired. Please log in again.");
-            setTimeout(() => {
-              window.location.href = "/login";
-            }, 2000);
-            return;
+            setError("Session expired or invalid.");
+          } else {
+            setError(`Failed to load profile: ${res.status} ${res.statusText}`);
           }
-          throw new Error(`Failed to fetch user: ${res.status} ${res.statusText}`);
+          setLoading(false);
+          return;
         }
 
         const backendData = await res.json();
-        console.log("[API Response - User Data]", backendData);
 
-        // ✅ Reconstruct role (in case backend doesn't send it)
-        let finalRole = role; // preserve from login
+        let finalRole = role;
         if (!finalRole) {
           finalRole = user_id?.includes("FOCAL") ? "office" : user_id?.includes("ADMIN") ? "admin" : "school";
         }
 
-        // ✅ Build merged user data
         const mergedData = {
           user_id: backendData.user_id || user_id || "",
           first_name: backendData.first_name || "",
@@ -133,7 +119,6 @@ const ManageAccount = () => {
           active: backendData.active !== undefined ? backendData.active : true,
         };
 
-        // ✅ Auto-fill school address if missing and role is "school"
         if (finalRole === "school" && (mergedData.school_address === "N/A" || mergedData.school_address === "Not specified")) {
           const correctAddress = schoolAddresses[mergedData.school_name];
           if (correctAddress) {
@@ -141,12 +126,9 @@ const ManageAccount = () => {
           }
         }
 
-        // ✅ Update session and state
         sessionStorage.setItem("currentUser", JSON.stringify(mergedData));
         setUserData(mergedData);
         setAvatar(mergedData.avatar);
-
-        // ✅ Initialize tempProfile for editing
         setTempProfile({
           first_name: mergedData.first_name,
           middle_name: mergedData.middle_name,
@@ -154,47 +136,48 @@ const ManageAccount = () => {
           email: mergedData.email,
           contact_number: mergedData.contact_number,
         });
-
       } catch (error) {
-        console.error("Error fetching user data:", error);
-        toast.error("Failed to load profile. Please log in again.");
-        sessionStorage.removeItem("currentUser");
-        setTimeout(() => {
-          window.location.href = "/login";
-        }, 2000);
+        console.error("Error fetching user ", error);
+        setError("Unable to load profile. Please try again later.");
+      } finally {
+        setLoading(false);
       }
     };
 
     fetchUserData();
   }, []);
 
-
-  // ✅ Show success toast after reload if flag exists
+  // Show success toast after reload if flag exists
   useEffect(() => {
     const shouldShowToast = sessionStorage.getItem("showProfileUpdateSuccess");
     if (shouldShowToast === "true") {
       toast.success("✅ Profile updated successfully!");
-      sessionStorage.removeItem("showProfileUpdateSuccess"); // Clean up
+      sessionStorage.removeItem("showProfileUpdateSuccess");
     }
   }, []);
 
-  if (!userData) {
-    return <div className="manage-account-app">No user data available</div>;
-  }
+  // ✅ Retry loading
+  const handleRetry = () => {
+    setError(null);
+    // Re-run the fetch logic
+    const fetchUserData = async () => {
+      // ... (reuse logic above or extract into a function)
+      // For brevity, we'll just reload the page — or better: extract fetchUserData
+      window.location.reload(); // Simple fallback
+    };
+    fetchUserData();
+  };
 
-  // Unified save handler — sends all fields, then reloads
+  // Save profile logic remains unchanged (no login redirect)
   const handleSaveProfile = async () => {
-    // Validate required fields
     if (!tempProfile.first_name.trim() || !tempProfile.last_name.trim()) {
       toast.warn("First and last name are required.");
       return;
     }
-
     if (!tempProfile.email || !tempProfile.email.includes("@")) {
       toast.warn("Please enter a valid email.");
       return;
     }
-
     if (!tempProfile.contact_number?.trim()) {
       toast.warn("Please enter a contact number.");
       return;
@@ -203,12 +186,8 @@ const ManageAccount = () => {
     try {
       const userId = userData.user_id;
       const role = userData.role;
+      if (!userId) throw new Error("User ID not found");
 
-      if (!userId) {
-        throw new Error("User ID not found");
-      }
-
-      // ✅ Prepare payload
       const payload = {
         first_name: tempProfile.first_name.trim(),
         middle_name: tempProfile.middle_name?.trim() || '',
@@ -217,41 +196,25 @@ const ManageAccount = () => {
         contact_number: tempProfile.contact_number.trim(),
       };
 
-      // ✅ Choose endpoint
       const endpoint = role === "school"
         ? `/school/account/update/id/?user_id=${encodeURIComponent(userId)}`
         : `/focal/account/update/id/?user_id=${encodeURIComponent(userId)}`;
 
-      // ✅ Build full URL
       const fullUrl = `${config.API_BASE_URL}${endpoint}`;
-      console.log("[PUT Request to]", fullUrl);
-
-      // ✅ Send PUT request with fetch
       const res = await fetch(fullUrl, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          // Authorization: `Bearer ${userData.token}`, // Uncomment if auth required
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
 
       if (!res.ok) {
         const errorData = await res.json().catch(() => ({}));
-        throw new Error(errorData.detail || `Update failed: ${res.status} ${res.statusText}`);
+        throw new Error(errorData.detail || `Update failed: ${res.status}`);
       }
 
-      const responseData = await res.json();
-      console.log("[Update Response]", responseData);
-
-      // ✅ Update session storage
       const updatedData = { ...userData, ...payload };
       sessionStorage.setItem("currentUser", JSON.stringify(updatedData));
-
-      // ✅ SET FLAG TO SHOW TOAST AFTER RELOAD
       sessionStorage.setItem("showProfileUpdateSuccess", "true");
-
-      // ✅ RELOAD PAGE
       window.location.reload();
     } catch (error) {
       console.error("Error updating profile:", error);
@@ -259,7 +222,6 @@ const ManageAccount = () => {
     }
   };
 
-  // Handle image upload
   const handleFileChange = async (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -269,7 +231,6 @@ const ManageAccount = () => {
         e.target.value = '';
         return;
       }
-
       if (file.size > 5 * 1024 * 1024) {
         toast.error("Image too large. Max 5MB allowed.");
         e.target.value = '';
@@ -278,22 +239,19 @@ const ManageAccount = () => {
 
       try {
         const reader = new FileReader();
-        reader.onload = async () => {
+        reader.onload = () => {
           const base64Image = reader.result;
           setAvatar(base64Image);
-
           const savedUser = JSON.parse(sessionStorage.getItem("currentUser"));
           const updatedUser = { ...savedUser, avatar: base64Image };
           sessionStorage.setItem("currentUser", JSON.stringify(updatedUser));
-
           setUserData(prev => ({ ...prev, avatar: base64Image }));
-
           toast.info("Profile picture updated!", { autoClose: 1500 });
         };
         reader.readAsDataURL(file);
       } catch (error) {
         console.error("Error processing image:", error);
-        toast.error("Failed to process image. Please try again.");
+        toast.error("Failed to process image.");
       }
     }
   };
@@ -302,21 +260,43 @@ const ManageAccount = () => {
     fileInputRef.current?.click();
   };
 
-  // Toggle edit mode
   const toggleEditMode = () => {
-    if (isEditing) {
-      setIsEditing(false);
-      toast.info("Exited edit mode.", { autoClose: 1500 });
-    } else {
-      setIsEditing(true);
-      toast.info("Edit mode enabled. Make your changes!", { autoClose: 2000 });
-    }
+    setIsEditing(!isEditing);
+    toast.info(isEditing ? "Exited edit mode." : "Edit mode enabled.", { autoClose: 1500 });
   };
+
+  // ✅ Render loading, error, or content
+  if (loading) {
+    return <div className="manage-account-app">Loading profile...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="manage-account-app error-view">
+        <div className="error-message">
+          <h3>⚠️ Unable to load your profile</h3>
+          <p>{error}</p>
+          <button onClick={handleRetry} className="retry-btn">
+            Retry
+          </button>
+        </div>
+        <ToastContainer />
+      </div>
+    );
+  }
+
+  if (!userData) {
+    return (
+      <div className="manage-account-app error-view">
+        <p>No profile data available.</p>
+        <button onClick={handleRetry}>Retry</button>
+      </div>
+    );
+  }
 
   return (
     <div className="manage-account-app">
       <main className="manage-account-main">
-        {/* Profile Section */}
         <div className="profile-section">
           <ProfileAvatar
             avatar={avatar}
@@ -326,7 +306,6 @@ const ManageAccount = () => {
             onFileChange={handleFileChange}
             userName={`${userData.first_name} ${userData.middle_name} ${userData.last_name}`}
           />
-
           <ProfileInfoCard
             userData={userData}
             isEditing={isEditing}
@@ -334,7 +313,6 @@ const ManageAccount = () => {
           />
         </div>
 
-        {/* Edit Links — only show when editing */}
         {isEditing && (
           <EditLinks
             tempProfile={tempProfile}

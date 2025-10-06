@@ -79,7 +79,6 @@
 
 @media (max-width: 768px) {
   .card-container {
-    grid-template-columns: 1fr; /* Stack cards vertically */
     gap: 16px;
     padding: 0 12px;
     margin: 2rem auto 80px; /* Reduce top margin, add bottom padding */

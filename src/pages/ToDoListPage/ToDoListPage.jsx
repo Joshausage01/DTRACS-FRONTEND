@@ -34,7 +34,7 @@ const ToDoListPage = () => {
     }
   };
 
-  useEffect(() => {
+  useEffect(() => { 
     const fetchTasksBySection = async () => {
       if (!schoolUserId || !section_designation) {
         setLoading(false);
@@ -55,20 +55,23 @@ const ToDoListPage = () => {
           }
         );
 
+        // Even if response is not ok, we'll treat it as "no tasks"
+        // But log it for debugging
         if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(`Failed to fetch tasks: ${response.status} - ${errorText}`);
+          console.warn("Task fetch returned non-OK status:", response.status, response.statusText);
+          // Still proceed to show "No tasks found"
+          setTasks([]);
+        } else {
+          const allAssignedTasks = await response.json();
+          const filteredTasks = allAssignedTasks.filter(
+            (task) => task.section === section_designation
+          );
+          setTasks(filteredTasks);
         }
-
-        const allAssignedTasks = await response.json();
-        const filteredTasks = allAssignedTasks.filter(
-          (task) => task.section === section_designation
-        );
-
-        setTasks(filteredTasks);
       } catch (err) {
-        console.error("Error fetching tasks:", err);
-        setError(err.message || "Failed to load tasks. Please try again.");
+        console.error("Network error while fetching tasks:", err);
+        // On network error, also show "No tasks found" per your request
+        setTasks([]);
       } finally {
         setLoading(false);
       }

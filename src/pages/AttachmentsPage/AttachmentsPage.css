@@ -4,7 +4,6 @@
   min-height: 100vh;
   padding: 74px 0 40px;
   color: #202124;
-  margin-left: 10px;
 }
 
 .attachments-back-btn {
@@ -63,7 +62,9 @@
 /* Responsive */
 @media (max-width: 600px) {
   .attachments-page {
-    padding: 64px 0 32px;
+    padding-top: 90px;
+    padding-left: 25px;
+    padding-right: 25px;
   }
 
   .attachments-back-btn,

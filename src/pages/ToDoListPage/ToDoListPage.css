@@ -165,13 +165,20 @@
   100% { transform: rotate(360deg); }
 }
 
+.no-tasks {
+  margin: 0;
+  font-size: 1rem;
+  font-style: italic; /* ✅ Already there */
+  color: #666;
+}
+
 
 /* ============= MEDIA QUERIES FOR MOBILE ============= */
 
 
 @media (max-width: 768px) {
   .task-list-page {
-    padding: 12px;
+    padding: 15px;
     margin-top: 50px;
     min-height: calc(100vh - 50px);
   }
@@ -227,7 +234,6 @@
 /* Small phones (e.g., iPhone SE) */
 @media (max-width: 480px) {
   .task-list-page {
-    padding: 8px;
     margin-top: 65px;
     min-height: calc(100vh - 40px);
   }

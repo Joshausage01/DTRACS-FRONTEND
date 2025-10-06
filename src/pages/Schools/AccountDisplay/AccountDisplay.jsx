@@ -15,7 +15,7 @@ const AccountDisplay = () => {
   const schoolMetadata = schoolAccounts.find(s => s.slug === schoolSlug);
   
   const [accounts, setAccounts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  // const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   const handleBack = () => navigate(-1);
@@ -23,7 +23,7 @@ const AccountDisplay = () => {
   useEffect(() => {
     if (!schoolMetadata) {
       setError("School not found");
-      setLoading(false);
+      // setLoading(false);
       return;
     }
 
@@ -33,11 +33,11 @@ const AccountDisplay = () => {
           params: { school_name: schoolMetadata.school_name }
         });
         setAccounts(response.data || []);
-        setLoading(false);
+        // setLoading(false);
       } catch (error) {
         console.error("Error fetching accounts:", error);
 
-        setLoading(false);
+        // setLoading(false);
       }
     };
 
@@ -48,9 +48,9 @@ const AccountDisplay = () => {
     return <div className="account-section">School not found.</div>;
   }
 
-  if (loading) {
-    return <div className="account-section">Loading accounts...</div>;
-  }
+  // if (loading) {
+  //   return <div className="account-section">Loading accounts...</div>;
+  // }
 
   if (error) {
     return <div className="account-section" style={{ color: "red" }}>{error}</div>;

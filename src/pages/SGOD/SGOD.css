@@ -24,7 +24,6 @@
 
 @media (max-width: 480px) {
   .section-container {
-    grid-template-columns: 1fr;
     padding: 0 15px;
     margin-top: 80px;
     gap: 12px;

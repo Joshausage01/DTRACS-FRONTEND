@@ -50,11 +50,11 @@ const Header = ({ toggleSidebar }) => {
   }, []);
 
   const handleViewAccount = () => {
-    navigate("/manage-account");
-    setIsDropdownOpen(false);
-  };
+      navigate("/manage-account");
+      setIsDropdownOpen(false);
+    };
 
-  const handleSignOut = async () => {
+    const handleSignOut = async () => {
     const savedUser = sessionStorage.getItem("currentUser");
     if (!savedUser) {
       window.location.replace("/login/school");
@@ -62,10 +62,10 @@ const Header = ({ toggleSidebar }) => {
     }
 
     const currentUser = JSON.parse(savedUser);
-    const accessToken = sessionStorage.getItem("authToken");
-    const refreshToken = sessionStorage.getItem("refreshToken")
+    const redirectPath = currentUser?.role === "office" 
+      ? "/login/office" 
+      : "/login/school";
 
-    // Always clear local session — regardless of backend response
     const clearSession = () => {
       sessionStorage.removeItem("currentUser");
       sessionStorage.removeItem("authToken");
@@ -73,32 +73,19 @@ const Header = ({ toggleSidebar }) => {
       setAvatarProps(null);
     };
 
-    // Determine redirect path
-    const redirectPath = currentUser?.role === "office" 
-      ? "/login/office" 
-      : "/login/school";
-
-    // If no token, just clear and redirect
-    if (!refreshToken) {
-      clearSession();
-      window.location.replace(redirectPath);
-      setIsDropdownOpen(false);
-      return;
-    }
-
     try {
-      const response = await fetch(`${config.API_BASE_URL}/auth/logout`, {
+      await fetch(`${config.API_BASE_URL}/auth/logout`, {
         method: "POST",
         credentials: "include",
+        headers: {
+          "Content-Type": "application/json",
+        },
       });
 
-      // ✅ Even if response is 401, we consider logout successful
-      // because token is no longer valid
       clearSession();
       window.location.replace(redirectPath);
     } catch (error) {
       console.error("Network error during logout:", error);
-      // ✅ Still clear session on network failure
       clearSession();
       window.location.replace(redirectPath);
     } finally {

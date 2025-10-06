@@ -26,6 +26,62 @@
   padding-top: 20px;
 }
 
+/* Error View Styling */
+.manage-account-app.error-view {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  background-color: #f9fafb;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.manage-account-app .error-message {
+  text-align: center;
+  max-width: 500px;
+  background: white;
+  padding: 30px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+}
+
+.manage-account-app .error-message h3 {
+  color: #d32f2f;
+  margin: 0 0 16px;
+  font-size: 1.4rem;
+  font-weight: 600;
+}
+
+.manage-account-app .error-message p {
+  color: #4b5563;
+  margin: 0 0 24px;
+  line-height: 1.5;
+  font-size: 1rem;
+}
+
+.retry-btn {
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-size: 1rem;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.retry-btn:hover {
+  background-color: #1d4ed8;
+}
+
+.retry-btn:focus {
+  outline: 2px solid #93c5fd;
+  outline-offset: 2px;
+}
+
 @media (max-width: 768px) {
   .manage-account-main {
     padding: 15px;
